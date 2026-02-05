@@ -1,0 +1,7 @@
+{
+  "name": "EDUKÁRDIA",
+  "description": "Plataforma de ensino gamificada focada no Ensino Fundamental com trilhas de aprendizado dinâmicas, reconhecimento de voz e estilo visual vibrante.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
