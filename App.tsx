@@ -12,6 +12,9 @@ const App: React.FC = () => {
   const {
     user,
     setName,
+    logout,
+    saveProgressManually,
+    isSaving,
     currentScreen,
     setCurrentScreen,
     activeLesson,
@@ -100,6 +103,9 @@ const App: React.FC = () => {
           <ProfileScreen 
             user={user} 
             onBack={() => setCurrentScreen('home')} 
+            onLogout={logout}
+            onSave={saveProgressManually}
+            isSaving={isSaving}
           />
         )}
       </main>
