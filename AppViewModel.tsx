@@ -17,9 +17,7 @@ const EMPTY_USER: UserState = {
 };
 
 const cleanAIJson = (text: string) => {
-  // Remove blocos de código markdown se existirem
   let cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  // Se ainda houver texto antes ou depois do array [], tenta extrair apenas o array
   const match = cleaned.match(/\[.*\]/s);
   return match ? match[0] : cleaned;
 };
@@ -74,11 +72,12 @@ export const useAppViewModel = () => {
   const generateAILesson = async (subject: Subject, title: string, lessonId: string) => {
     setIsLoadingLesson(true);
     try {
-      // Tenta IA se houver chave configurada e for válida
       if (process.env.API_KEY && process.env.API_KEY !== 'YOUR_API_KEY') {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const prompt = `Gere exatamente 10 questões didáticas para crianças (BNCC Fundamental 1) sobre: "${title}" na matéria de ${subject}.
-        Tipos permitidos: 'multiple-choice', 'input'. Retorne APENAS um array JSON puro.`;
+        const prompt = `Gere exatamente 10 questões didáticas (BNCC Ensino Fundamental 1) para o tema: "${title}" (${subject}).
+        Use mix de: 'multiple-choice', 'input', 'speech'.
+        Para 'speech', inclua 'targetPhrase'.
+        Retorne APENAS o JSON.`;
         
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
@@ -95,7 +94,8 @@ export const useAppViewModel = () => {
                   options: { type: Type.ARRAY, items: { type: Type.STRING } },
                   answer: { type: Type.STRING },
                   explanation: { type: Type.STRING },
-                  hint: { type: Type.STRING }
+                  hint: { type: Type.STRING },
+                  targetPhrase: { type: Type.STRING }
                 },
                 required: ["type", "text", "answer", "explanation", "hint"]
               }
@@ -107,37 +107,38 @@ export const useAppViewModel = () => {
         const questions = JSON.parse(cleanedJson) as Question[];
         
         if (questions && questions.length > 0) {
-          setActiveLesson({ id: lessonId, subject, title, theory: `Iniciando lição ${title}...`, questions, xpReward: 50 });
+          setActiveLesson({ id: lessonId, subject, title, theory: `Sua jornada em ${title} começou!`, questions, xpReward: 50 });
           setCurrentScreen('lesson');
           setIsLoadingLesson(false);
           return;
         }
       }
-      throw new Error("AI Fallback triggered");
+      throw new Error("AI Fallback");
     } catch (error) {
-      console.warn("AI falhou ou ausente, usando banco offline.", error);
+      console.warn("AI Offline. Usando banco lúdico local.");
       
-      // FALLBACK SEGURO: Busca por ID específico primeiro, depois por matéria
-      let fallbackPool = OFFLINE_QUESTION_BANK[lessonId] || OFFLINE_QUESTION_BANK[subject] || [];
+      let pool = [...(OFFLINE_QUESTION_BANK[lessonId] || OFFLINE_QUESTION_BANK[subject] || [])];
       
-      // Se ainda estiver vazio (segurança extra), usa uma questão de emergência
-      if (fallbackPool.length === 0) {
-        fallbackPool = [{
+      if (pool.length === 0) {
+        pool = [{
           type: 'multiple-choice',
-          text: `Bem-vindo ao Bioma de ${subject}! Vamos começar?`,
-          options: ['Sim!', 'Claro!', 'Com certeza!'],
+          text: `Bem-vindo ao Bioma de ${subject}! Pronto para começar?`,
+          options: ['Sim!', 'Claro!', 'Vamos!'],
           answer: 'Sim!',
-          explanation: 'Isso aí! O aprendizado é uma aventura.',
-          hint: 'Escolha qualquer uma!'
+          explanation: 'O aprendizado é uma grande aventura!',
+          hint: 'Diga sim para continuar.'
         }];
       }
+
+      // Embaralha e limita a 10 questões se houver mais, ou usa o que tem
+      const finalQuestions = pool.sort(() => 0.5 - Math.random()).slice(0, 10);
 
       setActiveLesson({
         id: lessonId,
         subject,
         title: `${title}`,
-        theory: `Bem-vindo ao módulo de ${title}. O conhecimento está em todo lugar no nosso bioma!`,
-        questions: [...fallbackPool].sort(() => 0.5 - Math.random()),
+        theory: `Bem-vindo ao módulo de ${title}. O conhecimento transforma o mundo!`,
+        questions: finalQuestions,
         xpReward: 40
       });
       setCurrentScreen('lesson');
